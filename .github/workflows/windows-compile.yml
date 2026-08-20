@@ -1,0 +1,22 @@
+name: Windows compile check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  compile:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile embedded C#
+        shell: powershell
+        run: |
+          $script = Get-Content .\CloseToTray.ps1 -Raw
+          $match = [regex]::Match($script, "(?s)\$source = @'\r?\n(.*?)\r?\n'@")
+          if (-not $match.Success) {
+            throw 'Could not extract embedded C# source from CloseToTray.ps1.'
+          }
+          $source = $match.Groups[1].Value
+          Add-Type -TypeDefinition $source -ReferencedAssemblies 'System.Windows.Forms','System.Drawing'
+          Write-Host 'Embedded C# compiled successfully.'
