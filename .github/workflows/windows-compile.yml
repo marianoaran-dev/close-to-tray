@@ -1,22 +1,38 @@
-name: Windows compile check
+name: Windows compile and self-test
 
 on:
   push:
   pull_request:
 
 jobs:
-  compile:
+  validate:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Compile embedded C#
+      - name: Compile CloseToTray
+        shell: cmd
+        run: |
+          "%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /nologo /target:winexe /platform:anycpu /optimize+ /win32manifest:CloseToTray.manifest /out:CloseToTray.exe /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.dll CloseToTray.cs
+      - name: Run built-in self-test
+        shell: cmd
+        run: |
+          CloseToTray.exe --self-test
+          if errorlevel 1 exit /b 1
+      - name: Verify v0.3.2 active design
         shell: powershell
         run: |
-          $script = Get-Content .\CloseToTray.ps1 -Raw
-          $match = [regex]::Match($script, "(?s)\$source = @'\r?\n(.*?)\r?\n'@")
-          if (-not $match.Success) {
-            throw 'Could not extract embedded C# source from CloseToTray.ps1.'
+          $source = Get-Content .\CloseToTray.cs -Raw
+          $installer = Get-Content .\Install.cmd -Raw
+          if ($source -notmatch 'Starting CloseToTray v0\.3\.2') {
+            throw 'Source version is not v0.3.2.'
           }
-          $source = $match.Groups[1].Value
-          Add-Type -TypeDefinition $source -ReferencedAssemblies 'System.Windows.Forms','System.Drawing'
-          Write-Host 'Embedded C# compiled successfully.'
+          if ($source -notmatch 'TryGetExplorerSelectedPath' -or $source -notmatch 'AssocQueryString') {
+            throw 'Explorer selected-item/default-association gate is missing.'
+          }
+          if ($installer -match 'ConfigureMarkdownAssociation|OpenInVSCode|CloseToTray\.OpenWatcher\.exe\s+"') {
+            throw 'Active installer still invokes an abandoned v0.2 integration path.'
+          }
+          if ($installer -notmatch 'Starting CloseToTray v0\.3\.2') {
+            throw 'Installer startup verification is not v0.3.2.'
+          }
+          Write-Host 'CloseToTray v0.3.2 compiled and self-tested successfully.'
