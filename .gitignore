@@ -1,0 +1,20 @@
+# Generated binaries and runtime files
+CloseToTray.exe
+CloseToTray.new.exe
+CloseToTray.previous.exe
+CloseToTray-v*.exe
+CloseToTray.OpenWatcher.exe
+OpenInVSCode.exe
+close-to-tray.log
+
+# Local validation / instruction packs
+Inbox/
+
+# One-off local updater/patch artefacts are never canonical source
+Apply-CloseToTray-v*.cmd
+
+# Editor / OS noise
+.vs/
+.vscode/
+Thumbs.db
+Desktop.ini
